@@ -14,10 +14,26 @@ Compile LaTeX projects via Web UI or REST API. Built for humans and AI agents.
 
 ---
 
+## Why AgentTeX?
+
+Cloud LaTeX platforms (Overleaf, etc.) impose limits on storage, compile history, and concurrent jobs. With a free account you typically get:
+- Limited compile timeout (1-4 min)
+- Capped project count and storage
+- Compilation history deleted after a few days
+- No API access for automation
+
+**AgentTeX runs on your own server — zero limits:**
+- **Unlimited compilation history** — every upload, source file, compile log, and PDF is preserved
+- **Unlimited storage** — your disk, your rules
+- **No timeout pressure** — configurable compile timeout (default 90s, raise it as needed)
+- **Full API access** — every feature is a REST endpoint, ready for AI agents and scripts
+- **Your data, your control** — nothing leaves your server, no account restrictions
+
 ## Features
 
 - **AI-native Web UI** — Glassmorphism dark theme with gradient accents, glow effects, live task monitoring
 - **Agent REST API** — Programmatic compilation, file browsing, error diagnosis, stats
+- **Unlimited history** — Every compilation preserved: source files, logs, and PDF outputs
 - **Async compilation** — Celery + Redis task queue, non-blocking
 - **XeLaTeX support** — Full TeX Live via `latexmk -xelatex`
 - **Security** — Path traversal protection, zip bomb prevention, size/count limits
