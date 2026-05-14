@@ -1,21 +1,42 @@
-# AgentTeX
+<div align="center">
 
-Agent-oriented TeX Compiler — a human-and-agent-friendly LaTeX compilation service with web UI.
+# ◈ AgentTeX
 
-Upload an Overleaf project (`.zip`), get a compiled PDF. Designed for both humans and AI agents.
+**Agent-oriented TeX Compiler**
+
+Compile LaTeX projects via Web UI or REST API. Built for humans and AI agents.
+
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
+[![React](https://img.shields.io/badge/react-18+-61dafb.svg)](https://react.dev)
+
+</div>
+
+---
 
 ## Features
 
-- **Web UI** — Dark developer-themed interface with drag-and-drop upload, live task monitoring, and PDF preview
-- **Agent API** — RESTful endpoints for programmatic compilation, task management, and error diagnosis
-- **Async compilation** — Celery + Redis queue, non-blocking
-- **XeLaTeX support** — Full TeX Live with `latexmk -xelatex`
-- **Security** — Path traversal protection, zip bomb prevention, file size/count limits
-- **One-click deploy** — `docker compose up` starts everything
+- **AI-native Web UI** — Glassmorphism dark theme with gradient accents, glow effects, live task monitoring
+- **Agent REST API** — Programmatic compilation, file browsing, error diagnosis, stats
+- **Async compilation** — Celery + Redis task queue, non-blocking
+- **XeLaTeX support** — Full TeX Live via `latexmk -xelatex`
+- **Security** — Path traversal protection, zip bomb prevention, size/count limits
+- **One-command setup** — `bash setup.sh && bash start.sh`
 
 ## Quick Start
 
-### Docker (recommended)
+### Option 1: One-command setup (non-Docker)
+
+```bash
+git clone https://github.com/HustWolfzzb/agenttex.git
+cd agenttex
+bash setup.sh      # Install dependencies & build frontend
+bash start.sh      # Start all services
+```
+
+Open http://localhost:8000
+
+### Option 2: Docker
 
 ```bash
 git clone https://github.com/HustWolfzzb/agenttex.git
@@ -23,30 +44,16 @@ cd agenttex
 docker compose up -d --build
 ```
 
-Open http://localhost:8000
-
-### Local Development
+### Option 3: Dev mode (hot reload)
 
 ```bash
-# Start Redis
-redis-server
-
-# Terminal 1: Backend
-pip install -r backend/requirements.txt
-uvicorn backend.app.main:app --port 8000 --reload &
-
-# Terminal 2: Celery worker
-celery -A backend.app.tasks.celery_app worker --loglevel=info --concurrency=1 &
-
-# Terminal 3: Frontend dev server
-cd frontend && npm install && npm run dev
+bash setup.sh
+bash start.sh --dev    # Frontend on :5173, backend on :8000
 ```
-
-Frontend dev server runs on http://localhost:5173 with API proxy to port 8000.
 
 ## API Reference
 
-### Human / Browser Endpoints
+### Browser Endpoints
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
@@ -57,58 +64,76 @@ Frontend dev server runs on http://localhost:5173 with API proxy to port 8000.
 | `GET` | `/latest/view` | View latest successful PDF |
 | `GET` | `/latest/pdf` | Download latest PDF |
 
-### Agent API Endpoints
+### Agent API
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/api/tasks` | List tasks, supports `?status=&limit=` filtering |
+| `GET` | `/api/tasks` | List tasks (`?status=&limit=`) |
 | `GET` | `/api/tasks/{id}/files` | List project files |
-| `GET` | `/api/tasks/{id}/files/{path}` | Read source file content |
-| `GET` | `/api/tasks/{id}/log` | Full compilation log for error diagnosis |
+| `GET` | `/api/tasks/{id}/files/{path}` | Read source file |
+| `GET` | `/api/tasks/{id}/log` | Full compilation log |
 | `GET` | `/api/stats` | Service statistics |
 
-Full interactive docs available at `/docs` (Swagger UI).
+Interactive docs at `/docs` (Swagger UI).
 
 ### Example: Agent Workflow
 
 ```bash
-# 1. Upload and compile
+# 1. Compile
 curl -F "file=@project.zip" http://localhost:8000/compile
 # {"task_id": "abc123...", "status": "pending"}
 
-# 2. Poll until done
+# 2. Poll
 curl http://localhost:8000/tasks/abc123...
 # {"task_id": "abc123...", "status": "success", ...}
 
-# 3. Download PDF
+# 3. Get PDF
 curl -O http://localhost:8000/tasks/abc123.../pdf
 
-# 4. On failure, diagnose
+# 4. Diagnose failure
 curl http://localhost:8000/api/tasks/abc123.../log
+
+# 5. Browse project files
+curl http://localhost:8000/api/tasks/abc123.../files
 ```
 
 ## Configuration
 
-All settings via environment variables (prefix `AGENTTEX_`):
+Environment variables with `AGENTTEX_` prefix (or use `.env`):
+
+```bash
+cp .env.example .env
+# Edit .env as needed
+```
 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `AGENTTEX_HOST` | `127.0.0.1` | Server host |
 | `AGENTTEX_PORT` | `8000` | Server port |
-| `AGENTTEX_REDIS_URL` | `redis://localhost:6379/0` | Redis connection |
-| `AGENTTEX_MAX_ZIP_SIZE` | `104857600` | Max upload size (100MB) |
+| `AGENTTEX_REDIS_URL` | `redis://localhost:6379/0` | Redis URL |
+| `AGENTTEX_MAX_ZIP_SIZE` | `104857600` | Max upload (100MB) |
 | `AGENTTEX_MAX_FILE_COUNT` | `1000` | Max files per zip |
-| `AGENTTEX_COMPILE_TIMEOUT_SOFT` | `90` | Soft timeout (seconds) |
-| `AGENTTEX_COMPILE_TIMEOUT_HARD` | `120` | Hard timeout (seconds) |
+| `AGENTTEX_COMPILE_TIMEOUT` | `90` | Timeout (seconds) |
 | `AGENTTEX_DATA_DIR` | `./data` | Data storage path |
+
+## Commands
+
+```bash
+bash setup.sh           # Install dependencies & build
+bash start.sh           # Production mode
+bash start.sh --dev     # Dev mode (hot reload)
+make build              # Rebuild frontend
+make up                 # Docker start
+make down               # Docker stop
+```
 
 ## Tech Stack
 
 - **Backend**: FastAPI + Celery + Redis
 - **Frontend**: React + TypeScript + Vite
-- **TeX**: TeX Live with latexmk + XeLaTeX
-- **Deploy**: Docker multi-stage build
+- **TeX**: TeX Live + latexmk + XeLaTeX
+- **Deploy**: Docker multi-stage build or bare metal
 
 ## License
 
-MIT
+[MIT](LICENSE)

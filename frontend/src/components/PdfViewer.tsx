@@ -9,20 +9,10 @@ export default function PdfViewer({ taskId }: Props) {
   const [task, setTask] = useState<TaskInfo | null>(null)
 
   useEffect(() => {
-    if (!taskId) {
-      setTask(null)
-      return
-    }
-
+    if (!taskId) { setTask(null); return }
     const poll = async () => {
-      try {
-        const t = await getTask(taskId)
-        setTask(t)
-      } catch {
-        // ignore
-      }
+      try { setTask(await getTask(taskId)) } catch { /* ignore */ }
     }
-
     poll()
     const timer = setInterval(poll, 2000)
     return () => clearInterval(timer)
@@ -31,7 +21,7 @@ export default function PdfViewer({ taskId }: Props) {
   if (!taskId) {
     return (
       <div className="card viewer-empty">
-        <h2>PDF Preview</h2>
+        <span className="viewer-empty-icon">◇</span>
         <p className="muted">Select a completed task to preview</p>
       </div>
     )
@@ -44,7 +34,7 @@ export default function PdfViewer({ taskId }: Props) {
       <div className="card">
         <h2>PDF Preview</h2>
         <div className="compiling">
-          <span className="spin">⟳</span>
+          <div className="compile-ring" />
           <p>Compiling...</p>
         </div>
       </div>
@@ -67,19 +57,11 @@ export default function PdfViewer({ taskId }: Props) {
     <div className="card">
       <div className="viewer-header">
         <h2>PDF Preview</h2>
-        <a
-          href={`/tasks/${taskId}/pdf`}
-          download
-          className="download-btn"
-        >
+        <a href={`/tasks/${taskId}/pdf`} download className="download-btn">
           Download PDF
         </a>
       </div>
-      <iframe
-        src={`/tasks/${taskId}/pdf`}
-        className="pdf-frame"
-        title="PDF Preview"
-      />
+      <iframe src={`/tasks/${taskId}/pdf`} className="pdf-frame" title="PDF Preview" />
     </div>
   )
 }

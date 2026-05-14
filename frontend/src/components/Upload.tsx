@@ -19,7 +19,7 @@ export default function Upload({ onUploaded }: Props) {
     }
     setError(null)
     setUploading(true)
-    setProgress(30)
+    setProgress(20)
     try {
       const result = await uploadZip(file)
       setProgress(100)
@@ -27,7 +27,7 @@ export default function Upload({ onUploaded }: Props) {
         setUploading(false)
         setProgress(0)
         onUploaded(result.task_id)
-      }, 500)
+      }, 600)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Upload failed')
       setUploading(false)
@@ -42,46 +42,38 @@ export default function Upload({ onUploaded }: Props) {
     if (file) handleFile(file)
   }
 
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault()
-    setDragging(true)
-  }
-
-  const onDragLeave = () => setDragging(false)
-
-  const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) handleFile(file)
-    if (inputRef.current) inputRef.current.value = ''
-  }
-
   return (
     <div className="card">
       <h2>Upload</h2>
       <div
         className={`dropzone ${dragging ? 'dragging' : ''}`}
         onDrop={onDrop}
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
+        onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
+        onDragLeave={() => setDragging(false)}
         onClick={() => inputRef.current?.click()}
       >
         {uploading ? (
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${progress}%` }} />
-            <span>{progress}%</span>
-          </div>
+          <>
+            <div className="progress-bar">
+              <div className="progress-fill" style={{ width: `${progress}%` }} />
+            </div>
+            <div className="progress-label">Uploading... {progress}%</div>
+          </>
         ) : (
-          <p>Drop .zip here or click to browse</p>
+          <>
+            <span className="dropzone-icon">⬆</span>
+            <p>Drop .zip or click to browse</p>
+          </>
         )}
         <input
           ref={inputRef}
           type="file"
           accept=".zip"
-          onChange={onChange}
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); if (inputRef.current) inputRef.current.value = '' }}
           style={{ display: 'none' }}
         />
       </div>
-      {error && <p className="error-text">{error}</p>}
+      {error && <p style={{ color: 'var(--error)', fontSize: 12, marginTop: 8 }}>{error}</p>}
     </div>
   )
 }
