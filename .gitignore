@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Data
+data/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+
+# Build output
+backend/static/
