@@ -34,6 +34,7 @@ Cloud LaTeX platforms (Overleaf, etc.) impose limits on storage, compile history
 - **AI-native Web UI** — Glassmorphism dark theme with gradient accents, glow effects, live task monitoring
 - **Agent REST API** — Programmatic compilation, file browsing, error diagnosis, stats
 - **Unlimited history** — Every compilation preserved: source files, logs, and PDF outputs
+- **Smart naming** — Auto-extracts `\title{}` from TeX source, or name manually via API/UI
 - **Async compilation** — Celery + Redis task queue, non-blocking
 - **XeLaTeX support** — Full TeX Live via `latexmk -xelatex`
 - **Security** — Path traversal protection, zip bomb prevention, size/count limits
@@ -73,8 +74,8 @@ bash start.sh --dev    # Frontend on :5173, backend on :8000
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/compile` | Upload `.zip`, returns `task_id` |
-| `GET` | `/tasks/{id}` | Query compilation status |
+| `POST` | `/compile` | Upload `.zip` (optional `name` field), returns `task_id` |
+| `GET` | `/tasks/{id}` | Query compilation status (includes `name`) |
 | `GET` | `/tasks/{id}/pdf` | Download compiled PDF |
 | `GET` | `/tasks/{id}/view` | View PDF in browser |
 | `GET` | `/latest/view` | View latest successful PDF |
@@ -88,6 +89,8 @@ bash start.sh --dev    # Frontend on :5173, backend on :8000
 | `GET` | `/api/tasks/{id}/files` | List project files |
 | `GET` | `/api/tasks/{id}/files/{path}` | Read source file |
 | `GET` | `/api/tasks/{id}/log` | Full compilation log |
+| `DELETE` | `/api/tasks/{id}` | Delete task and files |
+| `PUT` | `/api/tasks/{id}/rename` | Rename task (`?name=...`) |
 | `GET` | `/api/stats` | Service statistics |
 
 Interactive docs at `/docs` (Swagger UI).

@@ -6,7 +6,7 @@ from celery import Celery
 
 from backend.app.config import settings
 from backend.app.storage import storage
-from backend.app.tex_utils import extract_zip, find_main_tex, compile_tex
+from backend.app.tex_utils import extract_zip, find_main_tex, compile_tex, extract_title
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,7 @@ celery_app.conf.update(
     task_track_started=True,
 )
 
+# Store task metadata in Redis as JSON dicts
 _task_meta_key = "agenttex:task:{task_id}"
 
 
@@ -55,10 +56,13 @@ def get_all_tasks(status: str | None = None, limit: int = 50) -> list[dict]:
     for key in keys:
         data = r.hgetall(key)
         if data:
+            if not data.get("task_id"):
+                # Extract task_id from Redis key for legacy entries
+                # key format: agenttex:task:{task_id}
+                data["task_id"] = key.split(":")[-1] if isinstance(key, str) else key.decode().split(":")[-1]
             if status and data.get("status") != status:
                 continue
             tasks.append(data)
-    # Sort by created_at descending
     tasks.sort(key=lambda t: t.get("created_at", ""), reverse=True)
     return tasks[:limit]
 
@@ -97,13 +101,16 @@ def compile_task(self, task_id: str) -> dict:
     set_task_meta(task_id, status="running")
 
     try:
+        # Ensure dirs
         storage.ensure_dirs()
 
+        # Extract zip
         upload = storage.upload_path(task_id)
         project_dir = storage.project_path(task_id)
         project_dir.mkdir(parents=True, exist_ok=True)
         extract_zip(upload, project_dir)
 
+        # Find main .tex
         main_tex = find_main_tex(project_dir)
         if main_tex is None:
             set_task_meta(
@@ -114,9 +121,19 @@ def compile_task(self, task_id: str) -> dict:
             )
             return {"status": "failed", "error": "No .tex file found"}
 
+        # Auto-fill name from \title{} if not provided
+        meta = get_task_meta(task_id)
+        if not meta.get("name"):
+            title = extract_title(main_tex)
+            if title:
+                r = _get_redis()
+                r.hset(_task_meta_key.format(task_id=task_id), "name", title)
+
+        # Compile
         success, error = compile_tex(project_dir, main_tex)
 
         if success:
+            # Find and copy PDF
             pdf_name = main_tex.stem + ".pdf"
             pdf_src = project_dir / pdf_name
             pdf_dest = storage.output_path(task_id)
@@ -143,10 +160,10 @@ def compile_task(self, task_id: str) -> dict:
             set_task_meta(
                 task_id,
                 status="failed",
-                error=error[-2000:] if len(error) > 2000 else error,
+                error=error,
                 finished_at=datetime.now(timezone.utc).isoformat(),
             )
-            return {"status": "failed", "error": error[-2000:]}
+            return {"status": "failed", "error": error}
 
     except Exception as e:
         logger.exception("Compilation task failed")
